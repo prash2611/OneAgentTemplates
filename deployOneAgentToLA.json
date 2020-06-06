@@ -29,7 +29,7 @@
       "Name": "[Concat('AntiMalware', '(', parameters('laWorkspaceName'), ')')]",
       "GalleryName": "AntiMalware"
     },
-    "dataCollectionRuleName": "[concat(parameters('laWorkspaceName'), 'OneAgentDCR')]"
+    "dataCollectionRuleName": "[concat(uniqueString(parameters('laWorkspaceName')), 'OneAgentDCR')]"
   },
   "resources": [
     {
