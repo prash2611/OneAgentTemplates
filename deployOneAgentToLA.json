@@ -29,7 +29,7 @@
       "Name": "[Concat('AntiMalware', '(', parameters('laWorkspaceName'), ')')]",
       "GalleryName": "AntiMalware"
     },
-    "dataCollectionRuleName": "[concat(uniqueString(parameters('laWorkspaceName')), 'OneAgentDCR')]"
+    "dataCollectionRuleName": "[concat(parameters('laWorkspaceName'), 'OneAgentDCR')]"
   },
   "resources": [
     {
@@ -109,7 +109,7 @@
           ],
           "extensions": [
             {
-              "name": "AzureSecurityLinuxAgentDataSource",
+              "name": "AzureSecurityLinuxDataSource",
               "streams": [
                 "Microsoft-OperationLog",
                 "Microsoft-SecurityBaseline",
