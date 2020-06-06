@@ -1,0 +1,226 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies name of the VM where AzureSecurityLinuxAgent is to be installed."
+      }
+    },
+    "vmLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location of the VM."
+      }
+    },
+    "laWorkspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies name of the LA Workspace where AzureSecurityLinuxAgent data is to be streamed."
+      }
+    },
+    "laWorkspaceLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for LA Workspace."
+      }
+    }
+  },
+  "variables": {
+    "azureMonitorLinuxAgentVersion": "0.9",
+    "azureSecurityLinuxAgentVersion": "0.1",
+    "azureSecurityLinuxAgentProtectedSettings": {
+      "vsaIngestionEndpoint": "https://shavsadevsf01.westus2.cloudapp.azure.com:443/api/assets/{ASSETID}/scanOrders?api-version=v1",
+      "vsaClientConfigURI": "https://shavsadevstrgtc1.blob.core.windows.net/tenants/validtenantconfig",
+      "vsaIngestionAPIKey": "1219c206-b4d5-4ae6-83d0-9cc993aee5a5",
+      "vsaManifestStoreEndpoint": "https://shavamanifestcusprod1.blob.core.windows.net/50a1a297-d97e-4c80-a44d-8fdeb2f7946e/"
+    },
+    "securitySolution": {
+      "Name": "[Concat('Security', '(', parameters('laWorkspaceName'), ')')]",
+      "GalleryName": "Security"
+    },
+    "securityCenterFreeSolution": {
+      "Name": "[Concat('SecurityCenterFree', '(', parameters('laWorkspaceName'), ')')]",
+      "GalleryName": "SecurityCenterFree"
+    },
+    "antiMalwareSolution": {
+      "Name": "[Concat('AntiMalware', '(', parameters('laWorkspaceName'), ')')]",
+      "GalleryName": "AntiMalware"
+    },
+    "dataCollectionRuleName": "azureSecurityLinuxAgentDCR",
+    "dataCollectionRuleAssociationName": "[concat(parameters('vmName'), '/Microsoft.Insights/', 'azureSecurityLinuxAgentDCRA')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[parameters('vmName')]",
+      "location": "[parameters('vmLocation')]",
+      "apiVersion": "2018-06-01",
+      "identity": {
+        "type": "SystemAssigned"
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('vmName'), '/', 'AzureMonitorLinuxAgent')]",
+      "location": "[parameters('vmLocation')]",
+      "apiVersion": "2019-03-01",
+      "properties": {
+        "publisher": "Microsoft.Azure.Monitor",
+        "type": "AzureMonitorLinuxAgent",
+        "typeHandlerVersion": "[variables('azureMonitorLinuxAgentVersion')]",
+        "autoUpgradeMinorVersion": true
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('vmName'), '/', 'AzureSecurityLinuxAgent')]",
+      "location": "[parameters('vmLocation')]",
+      "apiVersion": "2019-03-01",
+      "properties": {
+        "publisher": "Microsoft.Azure.Security.Monitoring",
+        "type": "AzureSecurityLinuxAgent",
+        "typeHandlerVersion": "[variables('azureSecurityLinuxAgentVersion')]",
+        "autoUpgradeMinorVersion": true,
+        "protectedsettings": "[variables('azureSecurityLinuxAgentProtectedSettings')]"
+      }
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "name": "[variables('securitySolution').Name]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2015-11-01-preview",
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]"
+      },
+      "plan": {
+        "name": "[variables('securitySolution').Name]",
+        "publisher": "Microsoft",
+        "product": "[Concat('OMSGallery/', variables('securitySolution').GalleryName)]",
+        "promotionCode": ""
+      }
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "name": "[variables('securityCenterFreeSolution').Name]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2015-11-01-preview",
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]"
+      },
+      "plan": {
+        "name": "[variables('securityCenterFreeSolution').Name]",
+        "publisher": "Microsoft",
+        "product": "[Concat('OMSGallery/', variables('securityCenterFreeSolution').GalleryName)]",
+        "promotionCode": ""
+      }
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "name": "[variables('antiMalwareSolution').Name]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2015-11-01-preview",
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]"
+      },
+      "plan": {
+        "name": "[variables('antiMalwareSolution').Name]",
+        "publisher": "Microsoft",
+        "product": "[Concat('OMSGallery/', variables('antiMalwareSolution').GalleryName)]",
+        "promotionCode": ""
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "name": "[variables('dataCollectionRuleName')]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2019-11-01-preview",
+      "properties": {
+        "dataSources": {
+          "syslog": [
+            {
+              "name": "SyslogDataSource",
+              "streams": [
+                "Microsoft-Syslog"
+              ],
+              "facilityNames": [
+                "kern",
+                "auth",
+                "authpriv",
+                "cron",
+                "user",
+                "daemon",
+                "syslog",
+                "local0"
+              ],
+              "logLevels": [
+                "Debug",
+                "Critical",
+                "Emergency"
+              ]
+            }
+          ],
+          "extensions": [
+            {
+              "name": "ASCLinuxDataSource",
+              "streams": [
+                "Microsoft-OperationLog",
+                "Microsoft-SecurityBaseline",
+                "Microsoft-SecurityBaselineSummary",
+                "Microsoft-ProcessInvestigator",
+                "Microsoft-Auditd",
+                "Microsoft-ProtectionStatus",
+                "Microsoft-Heartbeat"
+              ],
+              "extensionName": "AzureSecurityLinuxAgent",
+              "extensionSettings": {
+                "auditLevel": "4",
+                "maxQueueSize": 1234
+              }
+            }
+          ]
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]",
+              "name": "laDestination"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "Microsoft-Syslog",
+              "Microsoft-OperationLog",
+              "Microsoft-SecurityBaseline",
+              "Microsoft-SecurityBaselineSummary",
+              "Microsoft-ProcessInvestigator",
+              "Microsoft-Auditd",
+              "Microsoft-ProtectionStatus",
+              "Microsoft-Heartbeat"
+            ],
+            "destinations": [
+              "laDestination"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/providers/dataCollectionRuleAssociations",
+      "name": "[variables('dataCollectionRuleAssociationName')]",
+      "location": "[parameters('vmLocation')]",
+      "apiVersion": "2019-11-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/dataCollectionRules/', variables('dataCollectionRuleName'))]"
+      ],
+      "properties": {
+        "dataCollectionRuleId": "[resourceId('Microsoft.Insights/dataCollectionRules/', variables('dataCollectionRuleName'))]"
+      }
+    }
+  ]
+}
