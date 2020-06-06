@@ -77,11 +77,5 @@
         "dataCollectionRuleId": "[parameters('dataCollectionRuleId')]"
       }
     }
-  ],
-  "outputs": {
-    "dataCollectionRuleAssociationId": {
-      "type": "string",
-      "value": "[resourceId('Microsoft.Compute/virtualMachines/providers/dataCollectionRuleAssociations/', variables('dataCollectionRuleAssociationName'))]"
-    }
-  }
+  ]
 }
