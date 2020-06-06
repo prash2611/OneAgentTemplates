@@ -1,0 +1,160 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "laWorkspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies name of the LA Workspace where OneAgent data is to be streamed."
+      }
+    },
+    "laWorkspaceLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for LA Workspace."
+      }
+    }
+  },
+  "variables": {
+    "securitySolution": {
+      "Name": "[Concat('Security', '(', parameters('laWorkspaceName'), ')')]",
+      "GalleryName": "Security"
+    },
+    "securityCenterFreeSolution": {
+      "Name": "[Concat('SecurityCenterFree', '(', parameters('laWorkspaceName'), ')')]",
+      "GalleryName": "SecurityCenterFree"
+    },
+    "antiMalwareSolution": {
+      "Name": "[Concat('AntiMalware', '(', parameters('laWorkspaceName'), ')')]",
+      "GalleryName": "AntiMalware"
+    },
+    "dataCollectionRuleName": "[concat(parameters('laWorkspaceName'), 'OneAgentDCR')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "name": "[variables('securitySolution').Name]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2015-11-01-preview",
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]"
+      },
+      "plan": {
+        "name": "[variables('securitySolution').Name]",
+        "publisher": "Microsoft",
+        "product": "[Concat('OMSGallery/', variables('securitySolution').GalleryName)]",
+        "promotionCode": ""
+      }
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "name": "[variables('securityCenterFreeSolution').Name]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2015-11-01-preview",
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]"
+      },
+      "plan": {
+        "name": "[variables('securityCenterFreeSolution').Name]",
+        "publisher": "Microsoft",
+        "product": "[Concat('OMSGallery/', variables('securityCenterFreeSolution').GalleryName)]",
+        "promotionCode": ""
+      }
+    },
+    {
+      "type": "Microsoft.OperationsManagement/solutions",
+      "name": "[variables('antiMalwareSolution').Name]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2015-11-01-preview",
+      "properties": {
+        "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]"
+      },
+      "plan": {
+        "name": "[variables('antiMalwareSolution').Name]",
+        "publisher": "Microsoft",
+        "product": "[Concat('OMSGallery/', variables('antiMalwareSolution').GalleryName)]",
+        "promotionCode": ""
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "name": "[variables('dataCollectionRuleName')]",
+      "location": "[parameters('laWorkspaceLocation')]",
+      "apiVersion": "2019-11-01-preview",
+      "properties": {
+        "dataSources": {
+          "syslog": [
+            {
+              "name": "SyslogDataSource",
+              "streams": [
+                "Microsoft-Syslog"
+              ],
+              "facilityNames": [
+                "kern",
+                "auth",
+                "authpriv",
+                "cron",
+                "user",
+                "daemon",
+                "syslog",
+                "local0"
+              ],
+              "logLevels": [
+                "Debug",
+                "Critical",
+                "Emergency"
+              ]
+            }
+          ],
+          "extensions": [
+            {
+              "name": "AzureSecurityLinuxAgentDataSource",
+              "streams": [
+                "Microsoft-OperationLog",
+                "Microsoft-SecurityBaseline",
+                "Microsoft-SecurityBaselineSummary",
+                "Microsoft-ProcessInvestigator",
+                "Microsoft-Auditd",
+                "Microsoft-ProtectionStatus",
+                "Microsoft-Heartbeat"
+              ],
+              "extensionName": "AzureSecurityLinuxAgent"
+            }
+          ]
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('laWorkspaceName'))]",
+              "name": "laDestination"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "Microsoft-Syslog",
+              "Microsoft-OperationLog",
+              "Microsoft-SecurityBaseline",
+              "Microsoft-SecurityBaselineSummary",
+              "Microsoft-ProcessInvestigator",
+              "Microsoft-Auditd",
+              "Microsoft-ProtectionStatus",
+              "Microsoft-Heartbeat"
+            ],
+            "destinations": [
+              "laDestination"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "dataCollectionRuleId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Insights/dataCollectionRules/', variables('dataCollectionRuleName'))]"
+    }
+  }
+}
