@@ -77,9 +77,15 @@
     }
   },
   "variables": {
-    "vmImageTemplateURIs": {
-      "Ubuntu:18.04-LTS:latest": "https://raw.githubusercontent.com/prash2611/OneAgentTemplates/master/deployUbuntu18.04-LTSlatestVM.json"
+    "vmImageReferences": {
+      "Ubuntu:18.04-LTS:latest": {
+        "publisher": "Canonical",
+        "offer": "UbuntuServer",
+        "sku": "18.04-LTS",
+        "version": "latest"
+      }
     },
+    "vmTemplateURI": "https://raw.githubusercontent.com/prash2611/OneAgentTemplates/master/deployUbuntu18.04-LTSlatestVM.json",
     "laWorkspaceTemplateURI": "https://raw.githubusercontent.com/prash2611/OneAgentTemplates/master/deployLAWorkspace.json",
     "deployOneAgentToLATemplateURI": "https://raw.githubusercontent.com/prash2611/OneAgentTemplates/master/deployOneAgentToLA.json",
     "deployOneAgentToVMTemplateURI": "https://raw.githubusercontent.com/prash2611/OneAgentTemplates/master/deployOneAgentToVM.json"
@@ -93,7 +99,7 @@
       "properties": {
         "mode": "Incremental",
         "templateLink": {
-          "uri": "[variables('vmImageTemplateURIs')[parameters('vmImageName')]]"
+          "uri": "[variables('vmTemplateURI')]"
         },
         "parameters": {
           "vmName": {
@@ -107,6 +113,9 @@
           },
           "vmAdminPublicKey": {
             "value": "[parameters('vmAdminPublicKey')]"
+          },
+          "vmImageReference": {
+            "value": "[variables('vmImageReferences')[parameters('vmImageName')]]"
           }
         }
       }
