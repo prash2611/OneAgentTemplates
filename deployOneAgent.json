@@ -67,9 +67,7 @@
     }
   },
   "variables": {
-    "oneAgentResourceGroupName": "[concat('OneAgentResourceGroup-', resourceGroup().location)]",
-    "oneAgentResourceGroupLocation": "[resourceGroup().location]",
-    "laWorkspaceName": "[if(empty(parameters('laWorkspaceName')), concat('OneAgentLAWorkspace-', subscription().subscriptionId, '-', resourceGroup().location), parameters('laWorkspaceName'))]",
+    "laWorkspaceName": "[if(empty(parameters('laWorkspaceName')), concat('OneAgentLAWorkspace-', resourceGroup().name, '-', resourceGroup().location), parameters('laWorkspaceName'))]",
     "laWorkspaceLocation": "[if(empty(parameters('laWorkspaceName')), resourceGroup().location, parameters('laWorkspaceLocation'))]",
     "vmImageReferences": {
       "Ubuntu:18.04-LTS:latest": {
@@ -116,20 +114,9 @@
     },
     {
       "condition": "[empty(parameters('laWorkspaceName'))]",
-      "name": "[variables('oneAgentResourceGroupName')]",
-      "type": "Microsoft.Resources/resourceGroups",
-      "apiVersion": "2019-05-01",
-      "location": "[variables('oneAgentResourceGroupLocation')]"
-    },
-    {
-      "condition": "[empty(parameters('laWorkspaceName'))]",
-      "resourceGroup": "[variables('oneAgentResourceGroupName')]",
       "name": "DeployLAWorkspace",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/resourceGroups', variables('oneAgentResourceGroupName'))]"
-      ],
       "properties": {
         "mode": "Incremental",
         "templateLink": {
