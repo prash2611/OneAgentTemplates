@@ -128,7 +128,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
       "dependsOn": [
-        "[variables('oneAgentResourceGroupName')]"
+        "[resourceId('Microsoft.Resources/resourceGroups', variables('oneAgentResourceGroupName'))]"
       ],
       "properties": {
         "mode": "Incremental",
