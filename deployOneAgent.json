@@ -2,6 +2,19 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "vmName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies name of the VM where AzureSecurityLinuxAgent is to be installed."
+      }
+    },
+    "vmLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location of the VM."
+      }
+    },
     "createNewVM": {
       "type": "string",
       "defaultValue": "false",
@@ -13,12 +26,6 @@
         "description": "Specifies if a new VM wtih default config is to be created."
       }
     },
-    "vmName": {
-      "type": "string",
-      "metadata": {
-        "description": "Specifies name of the VM where AzureSecurityLinuxAgent is to be installed."
-      }
-    },
     "vmImageName": {
       "type": "string",
       "defaultValue": "",
@@ -28,13 +35,6 @@
       ],
       "metadata": {
         "description": "Specifies image for the VM. Can be left blank, if a new VM is not being created."
-      }
-    },
-    "vmLocation": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Location of the VM."
       }
     },
     "vmAdminUsername": {
@@ -51,19 +51,9 @@
         "description": "Specifies the SSH rsa public key file as a string. Use \"ssh-keygen -t rsa -b 2048\" to generate your SSH key pairs. Can be left blank, if a new VM is not being created."
       }
     },
-    "createNewLAWorkspace": {
-      "type": "string",
-      "defaultValue": "false",
-      "allowedValues": [
-        "true",
-        "false"
-      ],
-      "metadata": {
-        "description": "Specifies if a new LA Workspace wtih default config is to be created."
-      }
-    },
     "laWorkspaceName": {
       "type": "string",
+      "defaultValue": "",
       "metadata": {
         "description": "Specifies name of the LA Workspace where AzureSecurityLinuxAgent data is to be streamed."
       }
@@ -77,6 +67,10 @@
     }
   },
   "variables": {
+    "oneAgentResourceGroupName": "[concat('OneAgentResourceGroup-', resourceGroup().location)]",
+    "oneAgentResourceGroupLocation": "[resourceGroup().location]",
+    "laWorkspaceName": "[if(empty(parameters('laWorkspaceName')), concat('OneAgentLAWorkspace-', subscription().subscriptionId, '-', resourceGroup().location), parameters('laWorkspaceName'))]",
+    "laWorkspaceLocation": "[if(empty(parameters('laWorkspaceName')), resourceGroup().location, parameters('laWorkspaceLocation'))]",
     "vmImageReferences": {
       "Ubuntu:18.04-LTS:latest": {
         "publisher": "Canonical",
@@ -121,10 +115,21 @@
       }
     },
     {
-      "condition": "[equals(parameters('createNewLAWorkspace'), 'true')]",
+      "condition": "[empty(parameters('laWorkspaceName'))]",
+      "name": "[variables('oneAgentResourceGroupName')]",
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2019-05-01",
+      "location": "[variables('oneAgentResourceGroupLocation')]"
+    },
+    {
+      "condition": "[empty(parameters('laWorkspaceName'))]",
+      "resourceGroup": "[variables('oneAgentResourceGroupName')]",
       "name": "DeployLAWorkspace",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2018-05-01",
+      "dependsOn": [
+        "[variables('oneAgentResourceGroupName')]"
+      ],
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -132,10 +137,10 @@
         },
         "parameters": {
           "laWorkspaceName": {
-            "value": "[parameters('laWorkspaceName')]"
+            "value": "[variables('laWorkspaceName')]"
           },
           "laWorkspaceLocation": {
-            "value": "[parameters('laWorkspaceLocation')]"
+            "value": "[variables('laWorkspaceLocation')]"
           }
         }
       }
@@ -154,10 +159,10 @@
         },
         "parameters": {
           "laWorkspaceName": {
-            "value": "[parameters('laWorkspaceName')]"
+            "value": "[variables('laWorkspaceName')]"
           },
           "laWorkspaceLocation": {
-            "value": "[parameters('laWorkspaceLocation')]"
+            "value": "[variables('laWorkspaceLocation')]"
           }
         }
       }
